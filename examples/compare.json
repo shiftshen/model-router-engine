@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "id": "coding",
+      "profile": {
+        "taskType": "coding",
+        "difficulty": "hard",
+        "requiredCapabilities": ["coding"],
+        "modalities": ["text"],
+        "languages": ["zh"],
+        "privacy": "normal"
+      },
+      "candidates": [
+        {
+          "id": "example-coder",
+          "provider": "example-provider",
+          "capabilities": ["coding"],
+          "modalities": ["text"],
+          "languages": ["zh"],
+          "contextWindow": 64000,
+          "maxOutput": 8000,
+          "costTier": 2,
+          "latencyTier": 2,
+          "privacy": "remote",
+          "status": "qualified",
+          "credentialStatus": "active"
+        }
+      ]
+    }
+  ]
+}
