@@ -1,6 +1,6 @@
 # Model Router Engine
 
-独立运行的模型路由建议引擎。输入经调用方验证的任务约束与候选模型能力，返回建议和来源；**不会调用候选模型、修改 Codex 配置或自动切换模型**。复杂任务先用本地 Laya Typed-Decisions 作有限选项判断；置信度低、出错或超时后由 Jev 选择安全的路由模板。简单任务直接走规则。
+独立运行的模型路由引擎。输入经调用方验证的任务约束与候选模型能力，返回建议和来源。命令行与 `recommend` 不会调用候选模型或修改 Codex 配置；宿主可通过 `dispatch` 接入自己的模型执行器，实现按任务自动分配。复杂任务先用本地 Laya Typed-Decisions 作有限选项判断；置信度低、出错或超时后由 Jev 选择安全的路由模板。简单任务直接走规则。
 
 ## 快速运行
 
@@ -89,6 +89,31 @@ npm run compare
 
 命令正常返回 JSON 时退出码为 0，包括业务层的无匹配或后端未配置；输入验证错误退出 2；运行时启动失败退出 3。输入上限为 1 MiB、候选上限为 100 个。程序化接入可导入 `model-router-engine` 的 `recommend`、`compare` 和 `createClients`。
 
+## 自动执行 SDK
+
+宿主应用可从 `model-router-engine/dispatch` 导入 `dispatch`。它先调用 `recommend`，仅当建议为 `resolved` 且所选候选经输入清单回查后仍明确合格，才把路由 ID、实际模型 ID 和供应商交给宿主注入的执行器。回查包括身份、任务能力、模态、语言、上下文、隐私、状态和凭据可用性；不自动执行 `fallback`、实验或降级候选。`dispatch` 不读取任务原文或调用模型，也不持有执行凭据。
+
+```js
+import { dispatch } from "model-router-engine/dispatch";
+
+const outcome = await dispatch({ profile, candidates }, {
+  execute: async (selected, context) => {
+    // 由你的应用负责存放 prompt、凭据并调用对应供应商。
+    return modelExecutor.run({
+      provider: selected.provider,
+      model: selected.modelId,
+      task: currentTask,
+    });
+  },
+});
+
+if (outcome.execution.status !== "completed") {
+  // 展示 outcome.decision.reason 或 outcome.execution.reason。
+}
+```
+
+`execute(selected, context)` 只会在通过校验后调用一次；`context` 含结构化 `profile`、建议来源与 `provenance`。成功返回 `decision.status: "selected"`、`execution.status: "completed"` 和执行结果。无推荐、身份不一致或不合格时返回 `decision.status: "rejected"`、`execution.status: "skipped"`；执行器抛错时返回 `execution.status: "failed"`，不把错误信息写入结果。宿主需要按自身策略处理重试和多角色任务。测试或自定义决策入口可传 `recommend: async (input) => ...`，也可传预先得到的 `recommendation`；两种方式均经过相同回查。
+
 ## 验证边界
 
-仓库包含固定测试和 Linux/macOS/Windows Node CI。它们验证契约、超时、回退和建议结果；真实 Laya 权重与 Jev Key 不在 CI 中。已有的独立冻结基准（216 个样本）曾测得 Laya Typed-Decisions 40.74%、Jev 97.22%，且 Laya 置信度均低于 0.5；这是先前样本的结果，并非本仓库 CI 重跑。当前阈值会使低置信度 Laya 走 Jev 回退，因此建议保持人工复核，不应把建议直接用作自动模型切换。
+仓库包含固定测试和 Linux/macOS/Windows Node CI。它们验证契约、超时、回退、建议结果与执行器交接；真实 Laya 权重与 Jev Key 不在 CI 中。已有的独立冻结基准（216 个样本）曾测得 Laya Typed-Decisions 40.74%、Jev 97.22%，且 Laya 置信度均低于 0.5；这是先前样本的结果，并非本仓库 CI 重跑。当前阈值会使低置信度 Laya 走 Jev 回退。使用自动执行 SDK 时，宿主仍需维护真实候选清单、执行日志和业务侧的质量复核。

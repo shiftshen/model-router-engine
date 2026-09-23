@@ -55,4 +55,17 @@ When running from the engine checkout, its repository copy also works with the c
 node skills/model-router-engine/scripts/recommend.mjs < request.json
 ```
 
-The command runs locally and prints a JSON advisory result. Treat `selected` as a suggestion only; explain its provenance and limitations, and keep the current model unless the user or caller explicitly authorizes a switch. A missing or rejected recommendation means there is no safe qualified match. The engine may use local Laya CoreML when configured and use Jev as fallback; `doctor` reports local setup needs. Never place API keys in task JSON or output.
+The command runs locally and prints a JSON result. The host, not the engine, establishes candidate qualification, capability claims, credential availability, and policy eligibility. Include only candidates the host has explicitly qualified and can actually invoke; never infer qualification from a model name.
+
+## Automatic task assignment
+
+When the user or calling workflow allows automatic assignment, use the recommendation to dispatch work:
+
+1. Build a structured profile from task type, difficulty, required capabilities, modalities, languages, context/output needs, and privacy. Send only that profile and the host-qualified candidate list to the engine; never send the original prompt, source text, keys, or private project data.
+2. Run `recommend` and inspect the JSON. Continue only when `status` equals `"resolved"` and `selected.id` exactly matches an `id` in the submitted candidate list. Otherwise, do not dispatch; report that no qualified selection was resolved.
+3. Use the available subagent/worker tool to start the task with the exact selected candidate's model, and verify the returned worker is actually configured for that model before relying on it. If the host cannot launch that model, stop and report the limitation.
+4. Review the delegated result against the task requirements before reporting completion.
+
+Prefer a qualified rule-based recommendation for simple tasks. For complex tasks, use Laya first and Jev only through the engine's fallback when Laya cannot resolve confidently. This skill cannot change the model of the already-running Codex turn: automatic assignment means dispatching a new worker when the host supports it, not silently switching the current turn. Without explicit permission for automatic assignment or a usable worker tool, present the recommendation as advisory and leave execution to the caller.
+
+Never place API keys in task JSON or output.

@@ -1,6 +1,6 @@
 {
   "name": "model-router-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Advisory model routing with local Laya Typed-Decisions and Jev fallback",
   "type": "module",
   "bin": {
@@ -8,7 +8,8 @@
   },
   "exports": {
     ".": "./src/engine.mjs",
-    "./core": "./src/routing-index.mjs"
+    "./core": "./src/routing-index.mjs",
+    "./dispatch": "./src/dispatch.mjs"
   },
   "files": [
     "bin/",
@@ -21,7 +22,7 @@
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "compare": "node bin/model-router-engine.mjs compare < examples/compare.json",
-    "check": "node --check bin/model-router-engine.mjs && node --check src/engine.mjs && npm test && npm pack --dry-run"
+    "check": "node --check bin/model-router-engine.mjs && node --check src/engine.mjs && node --check src/dispatch.mjs && npm test && npm pack --dry-run"
   },
   "engines": {
     "node": ">=20"
